@@ -1,5 +1,7 @@
 
 class Player:
-	def __init__(self):
-		self.states = ["inactive", "making_first_rush", ""]
-		self.score = 0
+    count = 0
+    def __init__(self):
+        Player.count += 1
+        self.count = Player.count
+        self.score = 0

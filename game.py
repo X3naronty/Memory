@@ -2,39 +2,48 @@ import os
 import time
 from card_table import Card_table
 import re
+import sys
+import select
+from player import Player
+from collections import deque
 
+def flush_stdin():
+    while select.select([sys.stdin], [], [], 0)[0]:
+        sys.stdin.readline()
 
 class Game:
-    def __init__(self):
-        # self.players = []
-        # self.player = self.players[0]
-        self.states = ["making_first_rush", "making_second_rush"]
-        self.state = self.states[0]
+    def __init__(self, players_num):
+        self.players = deque([Player() for i in range(players_num)])
         self.card_table = Card_table()
+        self.open_cards_count = 0
+        self.is_running = True
+    
+    @property
+    def player(self):
+        return self.players[0]
+    
+    def change_player(self):
+        self.players.rotate(-1)
 
     def run(self):
-        while True:
+        while self.is_running:
             self.draw()
-            try:
-                self.handle_input()
-            except ValueError as e:
-                print(e)
-                time.sleep(2)
-                continue
 
-            # first_card = self.get_card(self.handle_input("Write here row and column with space\n"))
-            # self.update(first_card)
-            # self.draw()
-            # second_card = self.get_card(self.handle_input("Write here row and column with space\n"))
-            # self.update(second_card)
-            # self.draw()
-            # time.sleep(1.5)
-            # is_equal = self.handle_result(first_card, second_card)
-            # if not is_equal: self.update(first_card, second_card)
+            first_card = None
+            while not first_card:
+                first_card = self.handle_input()
+                self.draw()
+
+            second_card = None 
+            while not second_card:
+                second_card = self.handle_input()
+                self.draw()
+
+            self.handle_result(first_card, second_card)
 
     def get_card(self, coords: tuple[int, int]) -> object:
         row, col = coords
-        return self.card_table.cards[row][col - 1]
+        return self.card_table.cards[row][col]
 
     def fetch_data(self, value) -> tuple[int, int]:
         value = re.sub(r'\s+', ' ', value.strip(" \n"))
@@ -49,50 +58,44 @@ class Game:
         return row - 1, col - 1
 
     def handle_input(self):
-        # message = f"Player's {self.player.name} turn. Enter card's row and column by space:"
-        message = 'Enter 2 numbers by space\n'
+        message = f"Player_{self.player.count}'s turn. Enter card's row and column by space:\n"
+        # message = 'Enter 2 numbers by space\n'
         value = input(message)
 
-        first_card = self.get_card(self.fetch_data(value))
-        first_card.flip()
-        self.draw()
+        try:
+            card = self.get_card(self.fetch_data(value))
+            card.flip('up')
+            return card
+        except ValueError as e:
+            print(e)
+            time.sleep(2)
+            flush_stdin()
+            return None
         
-        value = input(message)
-        second_card = self.get_card(self.fetch_data(value))
-        second_card.flip()
-        self.draw()
         
+    def handle_result(self, first_card, second_card):    
         if first_card.value == second_card.value:
-            # self.player.score += 1
+            self.player.score += 1
             first_card.make_inactive()
             second_card.make_inactive()
             
+            self.open_cards_count += 2
+            if self.open_cards_count == self.card_table.rows * self.card_table.cols:
+                for player in self.players:
+                    print(f"Player_{player.count} score: {player.score}")
+                self.is_running = False
+            
+
+            time.sleep(1.5)
+            flush_stdin()
         else:
             time.sleep(1.5)
-            first_card.flip()
-            second_card.flip()
-
-
-
-    # def handle_input(self, message) -> tuple[int, int]:
-    #     card_position = input(f"{message}");
-    #     card = tuple(map(lambda x: int(x), card_position.split(' ')));
-    #     return card
-
-    def update(self, *cards):
-        for card in cards:
-            if card.is_active:
-                card.flip()
-            else:
-                print("Choose another card")
-
-    def handle_result(self, first_card, second_card) -> bool:
-        if first_card.value == second_card.value:
-            # self.player.score += 1
-            first_card.make_inactive()
-            second_card.make_inactive()
-            return True
+            flush_stdin()
+            first_card.flip('down')
+            second_card.flip('down')
+            self.change_player()
 
     def draw(self):
         os.system('clear')
         self.card_table.draw()
+        

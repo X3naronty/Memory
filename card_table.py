@@ -17,9 +17,17 @@ class Card_table:
         return item
 
     def draw(self):
-        for row in self.cards:
+        for row in range(self.rows + 1):
             s = ""
-            for card in row:
-                s += card.get_value()
+            for col in range(self.cols + 1):
+                if row > 0 and col > 0:
+                    card = self.cards[row - 1][col - 1]
+                    s += card.get_value()
+                elif row == 0 and col:
+                    s += str(col)
+                elif col == 0 and row:
+                    s += str(row)
+                else: 
+                    s += '$'
                 s += " "
             print(s)
