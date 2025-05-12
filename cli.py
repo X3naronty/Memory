@@ -1,5 +1,8 @@
 import re
 from game import Game
+from os import listdir
+from os.path import join
+import pickle
 
 class CLI:
     def __init__(self):
@@ -36,7 +39,7 @@ class CLI:
         You can you following commands:
             help - to open this manual 
             game - to start new game
-            saved_games - to look saved games
+            saved_games - to continue saved games
             exit - to exit 
         ''')
         
@@ -50,10 +53,33 @@ class CLI:
         
         Game(int(players_num)).run()
         print("Type 'game' to start new game")
+        
+        
+    def continue_saved_game(self):
+        games_list = list(map(lambda x: x.replace('.pickle', ''), listdir('./saved_games')))
+        print("id".rjust(3), "name".rjust(25))
+        for idx, game in enumerate(games_list):
+            print(f"{idx + 1}".rjust(3), game.rjust(25))
 
+        value = None
+        while not value:
+            value = input("Enter saved game index to continue\n").strip(' \n')
+            value = int(value)
+            print(re.fullmatch(r'\d', str(value)))
+            print(value)
+            if not re.fullmatch(r'\d', str(value)) or value not in range(1, len(games_list) + 1):
+                value = None
+                print("Wrong id")
+        
+        value -= 1
+        
+        with open(f"saved_games/{games_list[value]}.pickle", "rb") as f:
+            game = pickle.load(f)     
+        
+        game.run()
+            
+        
     
-    def show_saved_games(self):
-        pass
 
     def handle_command(self, command):
         match command:
@@ -64,6 +90,6 @@ class CLI:
             case 'exit':
                 self.running = False
             case 'saved_games':
-                self.show_saved_games()
+                self.continue_saved_game()
             
 
